@@ -3,7 +3,7 @@
 
 一个适用于 [Salmonbot](https://github.com/Watanabe-Asa/SalmonBot) 的插件新建及迁移企画。
 
-欢迎大家参与本项目。
+欢迎大家参与本项目！
 
 ## 使用方法
 
