@@ -10,7 +10,7 @@
 将所需插件文件夹置于路径`salmon/modules`下，并按照对应要求安装依赖或编辑配置，然后在文件`salmon/configs/__bot__.py`的`MODULES_ON`中添加插件名并重启 bot .
 
 <details>
-  <summary>picfinder</summary>
+  <summary> picfinder </summary>
 
 ### 搜图功能
 
@@ -21,9 +21,9 @@
 </details>
 
 <details>
-  <summary>check</summary>
+  <summary> check </summary>
 
-### 搜图功能
+### 自检
 
 原项目导航> [check](https://github.com/pcrbot/Hoshino-plugin-transplant/tree/master/check)
 
@@ -32,6 +32,17 @@
 ```python
 pip3.9 install psutil
 ```
+
+</details>
+
+<details>
+  <summary> gacha </summary>
+
+### PCR自动更新卡池
+
+原项目导航> [gacha](https://github.com/pcrbot/gacha)
+
+请将文件`update.py`放至路径`salmon/modules/priconne`下。
 
 </details>
 
