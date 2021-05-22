@@ -36,13 +36,19 @@ pip3.9 install psutil
 </details>
 
 <details>
-  <summary> gacha </summary>
+  <summary> gacha / rank </summary>
 
 ### PCR自动更新卡池
 
 原项目导航> [gacha](https://github.com/pcrbot/gacha)
 
 请将文件`update.py`放至路径`salmon/modules/priconne`下。
+
+### PCR自动更新rank表
+
+原项目导航> [pcr-rank](https://github.com/ColdThunder11/pcr-rank)
+
+请将文件`rank.json`放至路径`salmon/modules/priconne`下，并替换同名文件`query.py`。
 
 </details>
 
