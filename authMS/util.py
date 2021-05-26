@@ -310,4 +310,4 @@ async def flush_group():
     with open(config.EVENT_FILTER, mode="w", encoding='utf-8') as f:
         json.dump(fil, f, indent=4, ensure_ascii=False)
     for bot in salmon.get_bot_list():
-        await bot.call_action("reload_event_filter")
+        await bot.reload_event_filter()

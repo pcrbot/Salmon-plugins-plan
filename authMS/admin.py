@@ -92,7 +92,7 @@ async def group_list_chat(bot: Bot, event: CQEvent):
 
 @change_auth.handle()
 async def add_time_chat(bot: Bot, event: CQEvent):
-    origin = event.get_plaintext().split()
+    origin = event.get_plaintext().strip()
     pattern = re.compile(r'^(\d{5,15})([+-]\d{1,5})$')
     m = pattern.match(origin)
     if m is None:
@@ -112,7 +112,7 @@ async def add_time_chat(bot: Bot, event: CQEvent):
 async def group_change_chat(bot: Bot, event: CQEvent):
     if not event.get_plaintext():
         await trans_auth.finish('请发送“转移授权 旧群群号*新群群号”来进行转移')
-    origin = event.get_plaintext().split()
+    origin = event.get_plaintext().strip()
     pattern = re.compile(r'^(\d{5,15})\*(\d{5,15})$')
     m = pattern.match(origin)
     if m is None:
