@@ -2,7 +2,7 @@ import os
 from ast import literal_eval
 from nonebot.plugin import on_command
 import salmon
-from salmon import Bot, aiohttpx, scheduler, priv
+from salmon import Bot, aiohttpx, scheduler, priv, util
 from salmon.typing import CQEvent
 from salmon.modules.priconne.pcr_data import _pcr_data
 from salmon.modules.priconne.pcr_data.chara import download_chara_icon, roster
@@ -61,6 +61,7 @@ async def update_pcrdata():
             for i, name in enumerate(online_pcrdata[id]):
                 name_format = name.replace('（', '(')
                 name_format = name_format.replace('）', ')')
+                name_format = util.normalize_str(name_format)
                 online_pcrdata[id][i] = name_format
             # 转集合再转列表, 移除重复元素
             online_pcrdata[id] = list(set(online_pcrdata[id]))
