@@ -241,7 +241,7 @@ def allowlist(group_id, operator='none', nocheck='no_number_check'):
         no_auth_check: 不检查授权(永久有效)
         no_check: 全部不检查
     '''
-    ALLOWLIST_PATH = os.path.expanduser('~/.hoshino/authMS/allowlist.json')
+    ALLOWLIST_PATH = os.path.expanduser('~/.salmon/authMS/allowlist.json')
     if os.path.exists(ALLOWLIST_PATH):
         with open(ALLOWLIST_PATH, 'r', encoding='utf-8') as rf:
             try:
@@ -250,7 +250,7 @@ def allowlist(group_id, operator='none', nocheck='no_number_check'):
                 salmon.logger.error(f'读取白名单列表时发生错误{type(e)}')
                 allowlist = {}
     else:
-        os.makedirs(os.path.expanduser('~/.hoshino/authMS'), exist_ok=True)
+        os.makedirs(os.path.expanduser('~/.salmon/authMS'), exist_ok=True)
         allowlist = {}
     if operator == 'none':
         return allowlist.get(str(group_id), 'not in')
