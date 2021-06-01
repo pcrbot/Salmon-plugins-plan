@@ -3,10 +3,11 @@ from lxml import etree
 from io import BytesIO
 from PIL import Image
 from random import randint
+from traceback import format_exc
 import salmon
 from salmon.typing import MessageSegment
 from salmon.util import pic2b64
-from salmon.configs.picfinder import SAUCENAO_RESULT_NUM, ASCII_RESULT_NUM, THUMB_ON
+from salmon.configs.picfinder import SAUCENAO_RESULT_NUM, ASCII_RESULT_NUM, THUMB_ON, proxies
 try:
     import ujson as json
 except:
@@ -14,7 +15,7 @@ except:
 
 
 def get_pic(address):
-    return requests.get(address,timeout=20).content
+    return requests.get(address, timeout=20, proxies=proxies).content
 
 
 def randcolor():
@@ -317,11 +318,11 @@ def sauces_info(sauce):
             service_name = f'Index #{index}'
             info ="no info"
             
-    except Exception as e:
+    except Exception:
         index = sauce['header']['index_id']
         service_name = f'Index #{index}'
         info ="no info"
-        print(e)
+        print(format_exc())
 
     return service_name, info
 
@@ -343,7 +344,7 @@ class SauceNAO():
     def get_sauce(self, url):
         self.params['url'] = url
         salmon.logger.debug(f"Now starting get the SauceNAO data:{url}")
-        response = requests.get('https://saucenao.com/search.php', params=self.params,timeout=15)
+        response = requests.get('https://saucenao.com/search.php', params=self.params, timeout=15, proxies=proxies)
         data = response.json()
         return data
 
@@ -365,8 +366,8 @@ class SauceNAO():
                 if THUMB_ON:
                     try:
                         thumbnail_image = str(MessageSegment.image(pic2b64(ats_pic(Image.open(BytesIO(get_pic(thumbnail_url)))))))
-                    except Exception as e:
-                        salmon.logger.error(f"预览图下载失败\n{e}")
+                    except Exception:
+                        salmon.logger.error(f"预览图下载失败:{format_exc()}")
                         thumbnail_image = "[预览图下载失败]"
                 else:
                     thumbnail_image = ""
@@ -379,8 +380,8 @@ class SauceNAO():
                 else:
                     repass = putline
 
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(format_exc())
                 #print(sauce)
                 pass
         
@@ -397,7 +398,7 @@ class ascii2d():
         if data is not None:
             html = data
         else:
-            html_data = requests.get(url, timeout=15)
+            html_data = requests.get(url, timeout=15, proxies=proxies)
             html = etree.HTML(html_data.text)
         all_data = html.xpath('//div[@class="row item-box"]')
         info = []
@@ -411,7 +412,7 @@ class ascii2d():
                 thumb_url =  f"https://ascii2d.net{thumb_url}"
                 if not data.xpath('.//div[@class="detail-box gray-link"]/h6'):
                     data2=data.xpath('.//div[@class="external"]')[0] if data.xpath('.//div[@class="external"]') else data
-                    info_url = data2.xpath('.//a/@href')[0].strip() if data.xpath('.//a/@href') else "no link"
+                    info_url = data2.xpath('.//a/@href')[0].strip() if data.xpath('.//a/@rel') else "no link"
                     tag="外部登录" if info_url=="no link" else info_url.split('/')[2]
                 else:
                     data2=data.xpath('.//div[@class="detail-box gray-link"]/h6')[0]
@@ -428,8 +429,8 @@ class ascii2d():
                     title = data2.text.replace("\n","")
                     title =f"「{title}」"        
                 info.append([info_url, tag, thumb_url, title])
-            except Exception as e:
-                salmon.logger.error(e)
+            except Exception:
+                salmon.logger.error(format_exc())
                 continue
         return info
 
@@ -440,8 +441,8 @@ class ascii2d():
             if THUMB_ON:
                 try:
                     thumbnail_image = str(MessageSegment.image(pic2b64(ats_pic(Image.open(BytesIO(get_pic(line[2])))))))
-                except Exception as e:
-                    salmon.logger.debug(f"预览图下载失败\n{e}")
+                except Exception:
+                    salmon.logger.error(f"预览图下载失败:{format_exc()}")
                     thumbnail_image = "[预览图下载失败]"
             else:
                 thumbnail_image = ""
@@ -456,11 +457,11 @@ class ascii2d():
         url_index = "https://ascii2d.net/search/url/{}".format(ascii2d)
         salmon.logger.debug("Now starting get the {}".format(url_index))
         try:
-            html_index_data = requests.get(url_index, timeout=7)
+            html_index_data = requests.get(url_index, timeout=7, proxies=proxies)
             html_index = etree.HTML(html_index_data.text)
-        except Exception as e:
-            print(e)
-            salmon.logger.error(f"ascii2d get html data failed: {e}")
+        except Exception:
+            print(format_exc())
+            salmon.logger.error(f"ascii2d get html data failed: {format_exc()}")
             return [putline1, putline2]
         neet_div = html_index.xpath('//div[@class="detail-link pull-xs-right hidden-sm-down gray-link"]')
         if neet_div:
@@ -489,8 +490,8 @@ async def get_image_data_sauce(image_url: str, api_key: str):
             header = NAO.header
             simimax = result[1]
             repass = "\n".join([header, result[0]])
-    except Exception as e:
-        salmon.logger.error(e)
+    except Exception:
+        salmon.logger.error(format_exc())
         return ["SauceNAO搜索失败……", 0]
     return [repass, simimax]
 
@@ -511,7 +512,7 @@ async def get_image_data_ascii(image_url: str):
                 repass1 = "\n".join([header, putline[0]])
             if putline[1]:
                 repass2 = "\n".join([header, putline[1]])
-    except Exception as e:
-        salmon.logger.error(e)
+    except Exception:
+        salmon.logger.error(format_exc())
         return ["ascii2d搜索失败……",""]
     return [repass1, repass2]
