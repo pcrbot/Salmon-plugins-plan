@@ -42,7 +42,7 @@ async def picfinder(bot: Bot, event: CQEvent, state: T_State):
     pic = state['pic']
     if pic in ('算了', '不用了'):
         await picfind.finish('我明白了~')
-    ret = re.search(r"\[CQ:image,file=(.*)?,url=(.*)\]", str(pic))
+    ret = re.findall(r"\[CQ:image,file=(.*)?,url=(.*)\]", str(pic))
     if not ret:
         return
     await bot.send(event, '正在搜索，请稍候～')
