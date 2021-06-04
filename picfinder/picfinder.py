@@ -2,8 +2,8 @@ import re
 import salmon
 from salmon import Service, Bot
 from salmon.configs import picfinder
-from salmon.typing import CQEvent, T_State, GroupMessageEvent, PrivateMessageEvent
 from salmon.util import DailyNumberLimiter
+from salmon.typing import CQEvent, T_State, GroupMessageEvent, PrivateMessageEvent, Message
 from salmon.configs.picfinder import threshold, SAUCENAO_KEY, CHAIN_REPLY, DAILY_LIMIT
 from salmon.modules.picfinder.image import get_image_data_sauce, get_image_data_ascii
 
@@ -28,7 +28,7 @@ async def pic_rec(bot: Bot, event: CQEvent, state: T_State):
             await picfind.finish(f'>{nickname}\n您今天已经搜过{DAILY_LIMIT}次图了，休息一下明天再来吧~')
         elif isinstance(event, PrivateMessageEvent):
             await picfind.finish(f'您今天已经搜过{DAILY_LIMIT}次图了，休息一下明天再来吧~')
-    args = event.get_message()
+    args = str(event.message).strip()
     if args:
         state['pic'] = args
     if isinstance(event, GroupMessageEvent):
@@ -38,11 +38,11 @@ async def pic_rec(bot: Bot, event: CQEvent, state: T_State):
     state['prompt'] = message
 
 @picfind.got('pic', prompt='{prompt}')
-async def picfinder(bot: Bot, event: CQEvent, state: T_State):
+async def pic_finder(bot: Bot, event: CQEvent, state: T_State):
     pic = state['pic']
     if pic in ('算了', '不用了'):
         await picfind.finish('我明白了~')
-    ret = re.findall(r"\[CQ:image,file=(.*)?,url=(.*)\]", str(pic))
+    ret = re.findall(r'url=(.*?)]', pic)
     if not ret:
         return
     await bot.send(event, '正在搜索，请稍候～')
@@ -51,7 +51,10 @@ async def picfinder(bot: Bot, event: CQEvent, state: T_State):
 
 
 async def chain_reply(bot, event, chain, msg):
-    if not CHAIN_REPLY:
+    if isinstance(event, PrivateMessageEvent):
+        await bot.send(event, Message(msg))
+        return chain
+    elif not CHAIN_REPLY:
         await bot.send(event, msg)
         return chain
     else:
@@ -94,6 +97,7 @@ async def picfinder(bot, event, image_data):
             chain = await chain_reply(bot, event, chain, image_data_report[1])
         if not (image_data_report[0] or image_data_report[1]):
             salmon.logger.error("ascii2d not found imageInfo")
-            chain = await chain_reply(bot, event, chain, 'ascii2d检索失败…')  
-    if CHAIN_REPLY:
-        await bot.send_group_forward_msg(group_id=event.group_id, messages=chain)
+            chain = await chain_reply(bot, event, chain, 'ascii2d检索失败…')
+    if isinstance(event, GroupMessageEvent):
+        if CHAIN_REPLY:
+            await bot.send_group_forward_msg(group_id=event.group_id, messages=chain)
