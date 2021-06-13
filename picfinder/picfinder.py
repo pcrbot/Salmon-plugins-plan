@@ -16,7 +16,7 @@ sv = Service('picfinder', help_=helptext)
 
 lmtd = DailyNumberLimiter(DAILY_LIMIT)
 
-picfind = sv.on_fullmatch('搜图', aliases={'识图', '查图', '找图'}, only_group=False)
+picfind = sv.on_prefix('搜图', aliases={'识图', '查图', '找图'}, only_group=False)
 
 @picfind.handle()
 async def pic_rec(bot: Bot, event: CQEvent, state: T_State):
@@ -24,10 +24,7 @@ async def pic_rec(bot: Bot, event: CQEvent, state: T_State):
     user_info = await bot.get_stranger_info(user_id=uid)
     nickname = user_info.get('nickname', '未知用户')
     if not lmtd.check(uid):
-        if isinstance(event, GroupMessageEvent):
-            await picfind.finish(f'>{nickname}\n您今天已经搜过{DAILY_LIMIT}次图了，休息一下明天再来吧~')
-        elif isinstance(event, PrivateMessageEvent):
-            await picfind.finish(f'您今天已经搜过{DAILY_LIMIT}次图了，休息一下明天再来吧~')
+        await picfind.finish(f'您今天已经搜过{DAILY_LIMIT}次图了，休息一下明天再来吧~', call_header=True)
     args = str(event.message).strip()
     if args:
         state['pic'] = args
@@ -45,7 +42,7 @@ async def pic_finder(bot: Bot, event: CQEvent, state: T_State):
     ret = re.findall(r'url=(.*?)]', pic)
     if not ret:
         return
-    await bot.send(event, '正在搜索，请稍候～')
+    await picfind.send('正在搜索，请稍候～', call_header=True)
     for url in ret:
         await picfinder(bot, event, url)
 

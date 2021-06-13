@@ -63,15 +63,14 @@ sv_help = '''
 
 sv = Service('pcr-query', help_=sv_help, bundle='pcr查询')
 
-miner = sv.on_fullmatch('挖矿', aliases={'jjc钻石', '竞技场钻石', 'jjc钻石查询', '竞技场钻石查询'}, only_group=False)
+miner = sv.on_prefix('挖矿', aliases={'jjc钻石', '竞技场钻石', 'jjc钻石查询', '竞技场钻石查询'}, only_group=False)
 rank = sv.on_rex(r'^(\*?([日台国陆b])服?([前中后]*)卫?)?rank(表|推荐|指南)?$', only_group=False)
 current_source = sv.on_fullmatch('查看当前rank更新源', only_group=False)
 all_source = sv.on_fullmatch('查看全部rank更新源', only_group=False)
 set_source = sv.on_rex(r'^设置rank更新源 (.{0,5}) (.{0,10}) (.{0,20})$', only_group=False)
 cache_update = sv.on_fullmatch('更新rank表缓存', only_group=False)
-yukari = sv.on_fullmatch('yukari-sheet', aliases={'黄骑充电', '酒鬼充电', '酒鬼充电表', '黄骑充电表'}, only_group=False)
+yukari = sv.on_fullmatch(('yukari-sheet', '黄骑充电', '酒鬼充电', '酒鬼充电表', '黄骑充电表'), only_group=False)
 who_is = sv.on_prefix('谁是', only_group=False)
-is_who = sv.on_suffix('是谁', only_group=False)
 
 
 async def load_config():
@@ -173,8 +172,6 @@ async def miner_rec(bot: Bot, event: CQEvent, state: T_State):
 
 @miner.got('rank', prompt='{prompt}')
 async def arena_miner(bot: Bot, event: CQEvent, state: T_State):
-    user_info = await bot.get_stranger_info(user_id=event.user_id)
-    nickname = user_info.get('nickname', '未知用户')
     rank = int(state['rank'])
     rank = np.clip(rank, 1, 15001)
     s_all = all_season[1:rank].sum()
@@ -193,38 +190,24 @@ async def arena_miner(bot: Bot, event: CQEvent, state: T_State):
          lst.append(1)
          break
     else:
-        if isinstance(event, GroupMessageEvent):
-            msg3 = f">{nickname}\n请输入15001以内的正整数"
-        elif isinstance(event, PrivateMessageEvent):
-            msg3 = "请输入15001以内的正整数"
-        await miner.finish(msg3)
-    if isinstance(event, GroupMessageEvent):
-        msg1 = f">{nickname}\n最高排名奖励还剩{s_this}钻\n历届最高排名还剩{s_all}钻\n推荐挖矿路径:\n"
-    elif isinstance(event, PrivateMessageEvent):
-        msg1 = f"最高排名奖励还剩{s_this}钻\n历届最高排名还剩{s_all}钻\n推荐挖矿路径:\n"
+        msg3 = "请输入15001以内的正整数"
+        await miner.finish(msg3, call_header=True)
+    msg1 = f"最高排名奖励还剩{s_this}钻\n历届最高排名还剩{s_all}钻\n推荐挖矿路径:\n"
     msg2 = ''.join('%s' %id for id in lst)
-    await bot.send(event, msg1 + msg2)
+    await miner.send(msg1 + msg2, call_header=True)
 
 
 @rank.handle()
 async def rank_sheet(bot: Bot, event: CQEvent, state: T_State):
     if config == None:
         await load_config()
-    user_info = await bot.get_stranger_info(user_id=event.user_id)
-    nickname = user_info.get('nickname', '未知用户')
     match = state['match']
     is_jp = match.group(2) == "日"
     is_tw = match.group(2) == "台"
     is_cn = match.group(2) and match.group(2) in "国陆b"
     if not is_jp and not is_tw and not is_cn:
-        if isinstance(event, GroupMessageEvent):
-            await rank.finish(f">{nickname}\n请问您要查询哪个区服的rank表？\n*日rank表\n*台rank表\n*陆rank表")
-        elif isinstance(event, PrivateMessageEvent):
-            await rank.finish("请问您要查询哪个区服的rank表？\n*日rank表\n*台rank表\n*陆rank表")
-    if isinstance(event, GroupMessageEvent):
-        msg = [f">{nickname}"]
-    elif isinstance(event, PrivateMessageEvent):
-        msg = []
+        await rank.finish("请问您要查询哪个区服的rank表？\n*日rank表\n*台rank表\n*陆rank表", call_header=True)
+    msg = []
     msg.append("\n")
     if is_jp:
         rank_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "cache", "jp.json")
@@ -242,7 +225,7 @@ async def rank_sheet(bot: Bot, event: CQEvent, state: T_State):
             msg.append(f"[CQ:image,file={rank_imgs[1]}]")
         if not pos or "后" in pos:
             msg.append(f"[CQ:image,file={rank_imgs[2]}]")
-        await bot.send(event, Message("".join(msg)))
+        await rank.send(Message("".join(msg)), call_header=True)
     elif is_tw:
         rank_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "cache", "tw.json")
         rank_config = None
@@ -254,7 +237,7 @@ async def rank_sheet(bot: Bot, event: CQEvent, state: T_State):
         msg.append(rank_config["notice"])
         for rank_img in rank_imgs:
             msg.append(f"[CQ:image,file={rank_img}]")
-        await bot.send(event, Message("".join(msg)))
+        await rank.send(event, Message("".join(msg)), call_header=True)
     elif is_cn:
         rank_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),"cache","cn.json")
         rank_config = None
@@ -266,7 +249,7 @@ async def rank_sheet(bot: Bot, event: CQEvent, state: T_State):
         msg.append(rank_config["notice"])
         for rank_img in rank_imgs:
             msg.append(f"[CQ:image,file={rank_img}]")
-        await bot.send(event, Message("".join(msg)))
+        await rank.send(Message("".join(msg)), call_header=True)
 
 
 @current_source.handle()
@@ -275,13 +258,7 @@ async def show_current_rank_source(bot: Bot, event: CQEvent):
         await load_config()
     if not priv.check_priv(event, priv.SUPERUSER):
         await current_source.finish("Insufficient authority.")
-    user_info = await bot.get_stranger_info(user_id=event.user_id)
-    nickname = user_info.get('nickname', '未知用户')
-    if isinstance(event, GroupMessageEvent):
-        msg = [f">{nickname}"]
-        msg.append("\n")
-    elif isinstance(event, PrivateMessageEvent):
-        msg = []
+    msg = []
     msg.append("国服:\n")
     msg.append(config["source"]["cn"]["name"])
     msg.append("   ")
@@ -309,7 +286,7 @@ async def show_current_rank_source(bot: Bot, event: CQEvent):
         msg.append("自动更新源")
     else:
         msg.append(config["source"]["jp"]["channel"])
-    await bot.send(event, "".join(msg))
+    await current_source.send("".join(msg), call_header=True)
 
 
 @all_source.handle()
@@ -320,13 +297,7 @@ async def show_all_rank_source(bot: Bot, event: CQEvent):
         await all_source.finish("Insufficient authority.")
     resp = await aiohttpx.get(server_addr + "route.json")
     res = resp.json()
-    user_info = await bot.get_stranger_info(user_id=event.user_id)
-    nickname = user_info.get('nickname', '未知用户')
-    if isinstance(event, GroupMessageEvent):
-        msg = [f">{nickname}"]
-        msg.append("\n")
-    elif isinstance(event, PrivateMessageEvent):
-        msg = []
+    msg = []
     msg.append("稳定源：\n国服:\n")
     for uo in res["ranks"]["channels"]["stable"]["cn"]:
         msg.append(uo["name"])
@@ -352,7 +323,7 @@ async def show_all_rank_source(bot: Bot, event: CQEvent):
         msg.append(uo["name"])
         msg.append("   ")
     msg.append("\n※如需修改更新源，请使用以下命令\n[设置rank更新源 国/台/日 稳定/自动更新 源名称]") 
-    await bot.send(event, "".join(msg))
+    await all_source.send("".join(msg), call_header=True)
 
 
 @set_source.handle()
@@ -361,8 +332,6 @@ async def set_rank(bot: Bot, event: CQEvent, state: T_State):
         await load_config()
     if not priv.check_priv(event, priv.SUPERUSER):
         await all_source.finish("Insufficient authority.")
-    user_info = await bot.get_stranger_info(user_id=event.user_id)
-    nickname = user_info.get('nickname', '未知用户')
     robj = state["match"]
     server = robj.group(1)
     channel = robj.group(2)
@@ -374,19 +343,13 @@ async def set_rank(bot: Bot, event: CQEvent, state: T_State):
     elif server == "日":
         server = "jp"
     else :
-        if isinstance(event, GroupMessageEvent):
-            await set_source.finish(f'>{nickname}\n请选择正确的区服(国/台/日)')
-        elif isinstance(event, PrivateMessageEvent):
-            await set_source.finish('请选择正确的区服(国/台/日)')
+        await set_source.finish('请选择正确的区服(国/台/日)', call_header=True)
     if channel == "稳定":
         channel = "stable"
     elif channel == "自动更新":
         channel = "auto_update"
     else :
-        if isinstance(event, GroupMessageEvent):
-            await set_source.finish(f'>{nickname}\n请选择正确的频道(稳定/自动更新)')
-        elif isinstance(event, PrivateMessageEvent):
-            await set_source.finish('请选择正确的频道(稳定/自动更新)')
+        await set_source.finish('请选择正确的频道(稳定/自动更新)', call_header=True)
     resp = await aiohttpx.get(server_addr + 'route.json')
     res = resp.json()
     has_name = False
@@ -397,19 +360,13 @@ async def set_rank(bot: Bot, event: CQEvent, state: T_State):
             source_jo = uo
             break
     if not has_name:
-        if isinstance(event, GroupMessageEvent):
-            await set_source.finish(f'>{nickname}\n请输入正确的源名称')
-        elif isinstance(event, PrivateMessageEvent):
-            await set_source.finish('请输入正确的源名称')
+        await set_source.finish('请输入正确的源名称', call_header=True)
     config['source'][server]['name'] = source_jo['name']
     config['source'][server]['channel'] = channel
     config['source'][server]['route'] = source_jo['route']
     save_config()
     await update_cache(True)
-    if isinstance(event, GroupMessageEvent):
-        await bot.send(event, f'>{nickname}\n更新源设置成功')
-    elif isinstance(event, PrivateMessageEvent):
-        await bot.send(event, '更新源设置成功')
+    await set_source.send('更新源设置成功', call_header=True)
 
 
 @cache_update.handle()
@@ -424,18 +381,11 @@ async def update_rank_cache(bot: Bot, event: CQEvent):
 
 @yukari.handle()
 async def yukari_sheet(bot: Bot, event: CQEvent):
-    user_info = await bot.get_stranger_info(user_id=event.user_id)
-    nickname = user_info.get('nickname', '未知用户')
-    sender = f'>{nickname}\n'
-    if isinstance(event, GroupMessageEvent):
-        await bot.send(event, sender + YUKARI_SHEET)
-    elif isinstance(event, PrivateMessageEvent):
-        await bot.send(event, YUKARI_SHEET)
+    await yukari.send(YUKARI_SHEET, call_header=True)
 
     
 @who_is.handle()
-@is_who.handle()
-async def whois(bot: Bot, event: CQEvent, state: T_State):
+async def whois(bot: Bot, event: CQEvent):
     name = event.get_plaintext().strip()
     if not name:
         return
@@ -449,22 +399,15 @@ async def whois(bot: Bot, event: CQEvent, state: T_State):
     if confi < 60:
         return
     uid = event.user_id
-    user_info = await bot.get_stranger_info(user_id=uid)
-    nickname = user_info.get('nickname', '未知用户')
     if not lmt.check(uid):
-        if isinstance(event, GroupMessageEvent):
-            await bot.send(event, f'>{nickname}\n兰德索尔花名册冷却中(剩余 {int(lmt.left_time(uid)) + 1}秒)')
-            return
-        elif isinstance(event, PrivateMessageEvent):
-            await bot.send(event, f'兰德索尔花名册冷却中(剩余 {int(lmt.left_time(uid)) + 1}秒)')
-            return
+        await who_is.finish(f'兰德索尔花名册冷却中(剩余 {int(lmt.left_time(uid)) + 1}秒)', call_header=True)
     lmt.start_cd(uid, 120 if guess else 0)
     if guess:
-        if isinstance(event, GroupMessageEvent):
-            msg = f'>{nickname}\n您有{confi}%的可能在找{guess_name} {c.icon.cqcode} {c.name}'
-        elif isinstance(event, PrivateMessageEvent):    
-            msg = f'您有{confi}%的可能在找{guess_name} {c.icon.cqcode} {c.name}'
-        await bot.send(event, Message(msg))
+        msg = f'兰德索尔似乎没有叫"{name}"的人...\n角色别称补全计划: github.com/Ice-Cirno/HoshinoBot/issues/5\n您有{confi}%的可能在找{guess_name} {c.icon.cqcode} {c.name}'
+        await who_is.send(Message(msg), call_header=True)
+    else:
+        msg = f'{c.icon.cqcode} {c.name}'
+        await who_is.finish(Message(msg), call_header=True)
 
 
 @scheduler.scheduled_job('cron', id='Rank更新', hour='17', minute='45')

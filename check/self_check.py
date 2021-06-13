@@ -10,7 +10,7 @@ MAX_PERFORMANCE_PERCENT = salmon.configs.check.MAX_PERFORMANCE_PERCENT
 PROCESS_NAME_LIST = salmon.configs.check.PROCESS_NAME_LIST
 check = Check(salmon.configs.check.PROCESS_NAME_LIST)
 
-check_self = sv.on_fullmatch('check', aliases={'自检', '自檢', '自我检查', '自我檢查'}, only_group=False)
+check_self = sv.on_fullmatch(('自检', '自檢', '自我检查', '自我檢查'), only_group=False)
 
 @check_self.handle()
 async def _(bot: Bot, event: CQEvent):
