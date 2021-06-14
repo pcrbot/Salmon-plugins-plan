@@ -1,9 +1,11 @@
+from operator import add
 import os
 import numpy as np
 import salmon
 from salmon import Service, Bot, R, scheduler, aiohttpx, priv
 from salmon.util import FreqLimiter
-from salmon.typing import CQEvent, T_State, GroupMessageEvent, PrivateMessageEvent, Message
+from salmon.service import add_header
+from salmon.typing import CQEvent, T_State, Message
 from salmon.modules.priconne.pcr_data import chara
 try:
     import ujson as json
@@ -157,12 +159,7 @@ async def update_cache(force_update:bool=False):
 
 @miner.handle()
 async def miner_rec(bot: Bot, event: CQEvent, state: T_State):
-    user_info = await bot.get_stranger_info(user_id=event.user_id)
-    nickname = user_info.get('nickname', '未知用户')
-    if isinstance(event, GroupMessageEvent):
-        state['prompt'] = f'>{nickname}\n请发送当前竞技场排名'
-    elif isinstance(event, PrivateMessageEvent):
-        state['prompt'] = '请发送当前竞技场排名'
+    state['prompt'] = await add_header(bot, event, msg='请发送当前竞技场排名')
     try:
         args = int(event.message.extract_plain_text())
         if args:

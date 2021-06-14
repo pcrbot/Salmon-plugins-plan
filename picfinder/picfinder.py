@@ -3,6 +3,7 @@ import salmon
 from salmon import Service, Bot
 from salmon.configs import picfinder
 from salmon.util import DailyNumberLimiter
+from salmon.service import add_header
 from salmon.typing import CQEvent, T_State, GroupMessageEvent, PrivateMessageEvent, Message
 from salmon.configs.picfinder import threshold, SAUCENAO_KEY, CHAIN_REPLY, DAILY_LIMIT
 from salmon.modules.picfinder.image import get_image_data_sauce, get_image_data_ascii
@@ -21,17 +22,12 @@ picfind = sv.on_prefix('搜图', aliases={'识图', '查图', '找图'}, only_gr
 @picfind.handle()
 async def pic_rec(bot: Bot, event: CQEvent, state: T_State):
     uid = event.user_id
-    user_info = await bot.get_stranger_info(user_id=uid)
-    nickname = user_info.get('nickname', '未知用户')
     if not lmtd.check(uid):
         await picfind.finish(f'您今天已经搜过{DAILY_LIMIT}次图了，休息一下明天再来吧~', call_header=True)
     args = str(event.message).strip()
     if args:
         state['pic'] = args
-    if isinstance(event, GroupMessageEvent):
-        message = f'>{nickname}\n请发送您需要搜索的图片~\n如果不需要搜图请发送“算了”或“不用了”:)'
-    elif isinstance(event, PrivateMessageEvent):
-        message = '请发送您需要搜索的图片~\n如果不需要搜图请发送“算了”或“不用了”:)'
+    message = await add_header(bot, event, msg='请发送需要搜索的图片~\n如果不需要搜图请发送“算了”或“不用了”:)')
     state['prompt'] = message
 
 @picfind.got('pic', prompt='{prompt}')
