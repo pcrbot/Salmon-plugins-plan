@@ -339,6 +339,7 @@ class SauceNAO():
         params['dbmaski'] = dbmaski
         params['db'] = db
         params['numres'] = numres
+        self.params = params
         self.header = "————>saucenao<————"
 
 
