@@ -1,0 +1,21 @@
+{
+    "base": {
+        "daily_max": 10,
+        "freq_limit": 30,
+        "max_pic_once_send": 1,
+        "enable_forward_msg": false
+    },
+    "default": {
+        "withdraw": 0,
+        "lolicon": true,
+        "lolicon_r18": false
+    },
+    "lolicon": {
+        "mode": 2,
+        "r18": false,
+        "size_original": false,
+        "pixiv_direct": false,
+        "pixiv_proxy": "",
+        "lolicon_proxy": ""
+    }
+}

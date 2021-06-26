@@ -78,6 +78,17 @@ pip3.9 install sqlitedict
 
 </details>
 
+<details>
+  <summary> setu_hina </summary>
+
+### setu插件
+
+原项目导航> [setu_renew](https://github.com/pcrbot/setu_renew)
+
+> 初次使用请发送`setu fetch`指令缓存图片。
+
+</details>
+
 ## 关于开源
 
 本项目以 GPL-3.0 协议开源。

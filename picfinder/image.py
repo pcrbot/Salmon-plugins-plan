@@ -5,17 +5,19 @@ from PIL import Image
 from random import randint
 from traceback import format_exc
 import salmon
+from salmon import aiohttpx
 from salmon.typing import MessageSegment
 from salmon.util import pic2b64
-from salmon.configs.picfinder import SAUCENAO_RESULT_NUM, ASCII_RESULT_NUM, THUMB_ON, proxies
+from salmon.configs.picfinder import SAUCENAO_RESULT_NUM, ASCII_RESULT_NUM, THUMB_ON
 try:
     import ujson as json
 except:
     import json
 
 
-def get_pic(address):
-    return requests.get(address, timeout=20, proxies=proxies).content
+async def get_pic(address):
+    ret = await aiohttpx.get(address, timeout=20)
+    return ret.content
 
 
 def randcolor():
@@ -125,7 +127,7 @@ def sauces_info(sauce):
         #index 17 reserved
         
         elif sauce['header']['index_id'] == 18 or sauce['header']['index_id'] == 38:
-            service_name='H-Misc'
+            service_name='H-Misc (ehentai)'
             eng_name = sauce['data']['eng_name']
             jp_name = sauce['data']['jp_name']
             info = f"{jp_name}" if jp_name else f"{eng_name}"
@@ -337,19 +339,18 @@ class SauceNAO():
         params['dbmaski'] = dbmaski
         params['db'] = db
         params['numres'] = numres
-        self.params = params
         self.header = "————>saucenao<————"
 
 
     def get_sauce(self, url):
         self.params['url'] = url
         salmon.logger.debug(f"Now starting get the SauceNAO data:{url}")
-        response = requests.get('https://saucenao.com/search.php', params=self.params, timeout=15, proxies=proxies)
+        response = requests.get('https://saucenao.com/search.php', params=self.params, timeout=15)
         data = response.json()
         return data
 
 
-    def get_view(self, sauce) -> str:
+    async def get_view(self, sauce) -> str:
         sauces = self.get_sauce(sauce)
         repass = ""
         simimax = 0
@@ -365,7 +366,7 @@ class SauceNAO():
                 thumbnail_url = sauce['header']['thumbnail']
                 if THUMB_ON:
                     try:
-                        thumbnail_image = str(MessageSegment.image(pic2b64(ats_pic(Image.open(BytesIO(get_pic(thumbnail_url)))))))
+                        thumbnail_image = str(MessageSegment.image(pic2b64(ats_pic(Image.open(BytesIO(await get_pic(thumbnail_url)))))))
                     except Exception:
                         salmon.logger.error(f"预览图下载失败:{format_exc()}")
                         thumbnail_image = "[预览图下载失败]"
@@ -394,11 +395,11 @@ class ascii2d():
         self.header = "————>ascii2d<————"
 
 
-    def get_search_data(self, url: str, data=None):
+    async def get_search_data(self, url: str, data=None):
         if data is not None:
             html = data
         else:
-            html_data = requests.get(url, timeout=15, proxies=proxies)
+            html_data = await aiohttpx.get(url, timeout=15)
             html = etree.HTML(html_data.text)
         all_data = html.xpath('//div[@class="row item-box"]')
         info = []
@@ -435,12 +436,12 @@ class ascii2d():
         return info
 
 
-    def add_repass(self, tag: str, data):
+    async def add_repass(self, tag: str, data):
         po = "——{}——".format(tag)
         for line in data:
             if THUMB_ON:
                 try:
-                    thumbnail_image = str(MessageSegment.image(pic2b64(ats_pic(Image.open(BytesIO(get_pic(line[2])))))))
+                    thumbnail_image = str(MessageSegment.image(pic2b64(ats_pic(Image.open(BytesIO(await get_pic(line[2])))))))
                 except Exception:
                     salmon.logger.error(f"预览图下载失败:{format_exc()}")
                     thumbnail_image = "[预览图下载失败]"
@@ -451,13 +452,13 @@ class ascii2d():
         return po
 
 
-    def get_view(self, ascii2d) -> str:
+    async def get_view(self, ascii2d) -> str:
         putline1 = ''
         putline2 = ''
         url_index = "https://ascii2d.net/search/url/{}".format(ascii2d)
         salmon.logger.debug("Now starting get the {}".format(url_index))
         try:
-            html_index_data = requests.get(url_index, timeout=7, proxies=proxies)
+            html_index_data = await aiohttpx.get(url_index, timeout=7)
             html_index = etree.HTML(html_index_data.text)
         except Exception:
             print(format_exc())
@@ -467,12 +468,12 @@ class ascii2d():
         if neet_div:
             a_url_foot = neet_div[0].xpath('./span/a/@href')
             url2 = "https://ascii2d.net{}".format(a_url_foot[1])
-            color = self.get_search_data('', data=html_index)
-            bovw = self.get_search_data(url2)
+            color = await self.get_search_data('', data=html_index)
+            bovw = await self.get_search_data(url2)
             if color:
-                putline1 = self.add_repass("色调检索", color)
+                putline1 = await self.add_repass("色调检索", color)
             if bovw:
-                putline2 = self.add_repass("特征检索", bovw)
+                putline2 = await self.add_repass("特征检索", bovw)
         return [putline1, putline2]
 
 
@@ -485,7 +486,7 @@ async def get_image_data_sauce(image_url: str, api_key: str):
     repass = ''
     simimax = 0
     try:
-        result = NAO.get_view(image_url)
+        result = await NAO.get_view(image_url)
         if result:
             header = NAO.header
             simimax = result[1]
@@ -505,7 +506,7 @@ async def get_image_data_ascii(image_url: str):
     repass1 = ''
     repass2 = ''
     try:
-        putline = ii2d.get_view(image_url)
+        putline = await ii2d.get_view(image_url)
         if putline:
             header = ii2d.header
             if putline[0]:
