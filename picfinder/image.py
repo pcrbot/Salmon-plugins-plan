@@ -9,10 +9,6 @@ from salmon import aiohttpx
 from salmon.typing import MessageSegment
 from salmon.util import pic2b64
 from salmon.configs.picfinder import SAUCENAO_RESULT_NUM, ASCII_RESULT_NUM, THUMB_ON
-try:
-    import ujson as json
-except:
-    import json
 
 
 async def get_pic(address):
