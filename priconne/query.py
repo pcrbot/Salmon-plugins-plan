@@ -234,7 +234,7 @@ async def rank_sheet(bot: Bot, event: CQEvent, state: T_State):
         msg.append(rank_config["notice"])
         for rank_img in rank_imgs:
             msg.append(f"[CQ:image,file={rank_img}]")
-        await rank.send(event, Message("".join(msg)), call_header=True)
+        await rank.send(Message("".join(msg)), call_header=True)
     elif is_cn:
         rank_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),"cache","cn.json")
         rank_config = None
