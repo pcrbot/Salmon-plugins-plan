@@ -44,8 +44,7 @@ resize_pic = False
 config = None
 
 
-YUKARI_SHEET = Message(f'''
-{R.img('priconne/quick/黄骑充电.jpg').cqcode}
+YUKARI_SHEET = Message(f'''{R.img('priconne/quick/黄骑充电.jpg').cqcode}
 ※大圈是1动充电对象 PvP测试
 ※黄骑四号位例外较多
 ※对面羊驼或中后卫坦 有可能歪
@@ -205,7 +204,6 @@ async def rank_sheet(bot: Bot, event: CQEvent, state: T_State):
     if not is_jp and not is_tw and not is_cn:
         await rank.finish("请问您要查询哪个区服的rank表？\n*日rank表\n*台rank表\n*陆rank表", call_header=True)
     msg = []
-    msg.append("\n")
     if is_jp:
         rank_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "cache", "jp.json")
         rank_config = None
