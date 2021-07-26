@@ -1,4 +1,3 @@
-# 太累了，就没有对 nonebot2 连续对话特性进行更深的适配了，后续可能会回头优化(以及欢迎 PR)
 import re
 from math import ceil
 from nonebot.plugin import on_command
@@ -29,21 +28,22 @@ async def add_time_all_rec(bot: Bot, event: CQEvent, state: T_State):
     if event.user_id not in salmon.configs.SUPERUSERS:
         util.log(f'{event.user_id}尝试批量授权, 已拒绝')
         await all_add.finish('权限不足')
-    days = event.get_plaintext().split()
+    days = event.get_plaintext().strip()
     if days:
         state['days'] = days
+
 
 @all_add.got('days', prompt='请发送需要为所有群增加的天数')
 async def add_time_all_chat(bot: Bot, event: CQEvent, state: T_State):
     try:
         days = int(state['days'])
-        authed_group_list = await util.get_authed_group_list()
-        for ginfo in authed_group_list:
-            await util.change_authed_time(ginfo['gid'], days)
-        util.log(f'已为所有群授权增加{days}天')
-        await all_add.finish(f'已为所有群授权增加{days}天')
     except:
         await all_add.finish('Invalid input.')
+    authed_group_list = await util.get_authed_group_list()
+    for ginfo in authed_group_list:
+        await util.change_authed_time(ginfo['gid'], days)
+    util.log(f'已为所有群授权增加{days}天')
+    await all_add.finish(f'已为所有群授权增加{days}天')
 
 
 @auth_list.handle()
@@ -63,7 +63,7 @@ async def group_list_chat(bot: Bot, event: CQEvent):
             # 无其他参数默认第一页
             page = 1
         else:
-            page = int(event.get_plaintext().split())
+            page = int(event.get_plaintext().strip())
         msg = '======授权列表======\n'
         authed_group_list = await util.get_authed_group_list()
         length = len(authed_group_list)
@@ -81,12 +81,12 @@ async def group_list_chat(bot: Bot, event: CQEvent):
             gid = int(item['gid'])
             g_time = util.check_group(gid)
             msg_new = await util.process_group_msg(gid,
-                                                    g_time,
-                                                    title=f'第{i}条信息\n',
-                                                    end='\n\n',
-                                                    group_name_sp=item['groupName'])
+                                                   g_time,
+                                                   title=f'第{i}条信息\n',
+                                                   end='\n\n',
+                                                   group_name_sp=item['groupName'])
             msg += msg_new
-        msg += f'第{page}页, 共{pages_all}页\n发送查询授权+页码以查询其他页'
+        msg += f'第{page}页, 共{pages_all}页\n发送授权列表+页码以查询其他页'
         await auth_list.finish(msg)
 
 
@@ -144,9 +144,9 @@ async def auth_status_chat(bot: Bot, event: CQEvent):
     elif isinstance(event, PrivateMessageEvent):
         sid = event.self_id
         sgl = set(g['group_id']
-                    for g in await bot.get_group_list(self_id=sid))
+                  for g in await bot.get_group_list(self_id=sid))
         frl = set(f['user_id']
-                    for f in await bot.get_friend_list(self_id=sid))
+                  for f in await bot.get_friend_list(self_id=sid))
         # 直接从service里抄了, 面向cv编程才是真
         gp_num = len(sgl)
         fr_num = len(frl)
@@ -160,28 +160,29 @@ async def remove_auth_rec(bot: Bot, event: CQEvent, state: T_State):
     '''
     完全移除一个群的授权，当然群聊发送也是需要确认群号的
     '''
-    gid = event.get_plaintext().split()
+    gid = event.get_plaintext().strip()
     if gid:
         state['gid'] = gid
+
 
 @remove_auth.got('gid', prompt='请发送需要清除授权的群号')
 async def remove_auth_chat(bot: Bot, event: CQEvent, state: T_State):
     try:
         gid = int(state['gid'])
-        if event.user_id not in salmon.configs.SUPERUSERS:
-            util.log(f'{event.user_id}尝试为群{gid}清除授权, 已拒绝')
-            await remove_auth.finish('权限不足')
-        time_left = util.check_group(gid)
-        if not time_left:
-            await remove_auth.finish('此群未获得授权')
-        msg = await util.process_group_msg(gid=gid, expiration=time_left, title='已移除授权,原授权信息如下\n')
-        await util.change_authed_time(gid=gid, operate='clear')
-        if config.AUTO_LEAVE:
-            await util.gun_group(group_id=gid, reason='本群已被移除授权，具体事项请联系维护')
-            msg += '\n已尝试退出该群聊'
-        await remove_auth.finish(msg)
     except:
         await remove_auth.finish('Invalid input.')
+    if event.user_id not in salmon.configs.SUPERUSERS:
+        util.log(f'{event.user_id}尝试为群{gid}清除授权, 已拒绝')
+        await remove_auth.finish('权限不足')
+    time_left = util.check_group(gid)
+    if not time_left:
+        await remove_auth.finish('此群未获得授权')
+    msg = await util.process_group_msg(gid=gid, expiration=time_left, title='已移除授权,原授权信息如下\n')
+    await util.change_authed_time(gid=gid, operate='clear')
+    if config.AUTO_LEAVE:
+        await util.gun_group(group_id=gid, reason='本群已被移除授权，具体事项请联系维护')
+        msg += '\n已尝试退出该群聊'
+    await remove_auth.finish(msg)
 
 
 @no_number_check.handle()
@@ -193,23 +194,24 @@ async def no_number_check_rec(bot: Bot, event: CQEvent, state: T_State):
         gid = event.group_id
         state['gid'] = gid
     elif isinstance(event, PrivateMessageEvent):
-        gid = event.get_plaintext().split()
+        gid = event.get_plaintext().strip()
         if gid:
             state['gid'] = gid
+
 
 @no_number_check.got('gid', prompt='请发送需要设置人数白名单的群号')
 async def no_number_check_chat(bot: Bot, event: CQEvent, state: T_State):
     try:
         gid = int(state['gid'])
-        if event.user_id not in salmon.configs.SUPERUSERS:
-            util.log(f'{event.user_id}尝试为群{gid}设置不检查人数, 已拒绝')
-            await no_number_check.finish('权限不足')
-        util.allowlist(group_id=gid, operator='add', nocheck='no_number_check')
-        util.log(f'管理员{event.user_id}已将群{gid}添加至白名单, 类型为不检查人数')
-        await notify_group(group_id=gid, txt='已添加本群为白名单，将不会检查本群人数上限')
-        await no_number_check.finish(f'已将群{gid}添加至白名单, 类型为不检查人数')
     except:
         await no_number_check.finish('Invalid input.')
+    if event.user_id not in salmon.configs.SUPERUSERS:
+        util.log(f'{event.user_id}尝试为群{gid}设置不检查人数, 已拒绝')
+        await no_number_check.finish('权限不足')
+    util.allowlist(group_id=gid, operator='add', nocheck='no_number_check')
+    util.log(f'管理员{event.user_id}已将群{gid}添加至白名单, 类型为不检查人数')
+    await notify_group(group_id=gid, txt='已添加本群为白名单，将不会检查本群人数上限')
+    await no_number_check.finish(f'已将群{gid}添加至白名单, 类型为不检查人数')
 
 
 @no_auth_check.handle()
@@ -218,23 +220,21 @@ async def no_auth_check_rec(bot: Bot, event: CQEvent, state: T_State):
         gid = event.group_id
         state['gid'] = gid
     elif isinstance(event, PrivateMessageEvent):
-        gid = event.get_plaintext().split()
+        gid = event.get_plaintext().strip()
         if gid:
             state['gid'] = gid
 
+
 @no_auth_check.got('gid', prompt='请发送需要设置授权白名单的群号')
 async def no_auth_check_chat(bot: Bot, event: CQEvent, state: T_State):
-    try:
-        gid = int(state['gid'])
-        if event.user_id not in salmon.configs.SUPERUSERS:
-            util.log(f'{event.user_id}尝试为群{gid}设置不检查授权, 已拒绝')
-            await no_auth_check.finish('权限不足')
-        util.allowlist(group_id=gid, operator='add', nocheck='no_auth_check')
-        util.log(f'管理员{event.user_id}已将群{gid}添加至白名单, 类型为不检查授权')
-        await notify_group(group_id=gid, txt='已添加本群为白名单，将不会检查本群授权是否过期')
-        await no_auth_check.finish(f'已将群{gid}添加至白名单, 类型为不检查授权')
-    except:
-        await no_auth_check.finish('Invalid input.')
+    gid = int(state['gid'])
+    if event.user_id not in salmon.configs.SUPERUSERS:
+        util.log(f'{event.user_id}尝试为群{gid}设置不检查授权, 已拒绝')
+        await no_auth_check.finish('权限不足')
+    util.allowlist(group_id=gid, operator='add', nocheck='no_auth_check')
+    util.log(f'管理员{event.user_id}已将群{gid}添加至白名单, 类型为不检查授权')
+    await notify_group(group_id=gid, txt='已添加本群为白名单，将不会检查本群授权是否过期')
+    await no_auth_check.finish(f'已将群{gid}添加至白名单, 类型为不检查授权')
 
 
 @no_check.handle()
@@ -246,46 +246,48 @@ async def no_check_rec(bot: Bot, event: CQEvent, state: T_State):
         gid = event.group_id
         state['gid'] = gid
     elif isinstance(event, PrivateMessageEvent):
-        gid = event.get_plaintext().split()
+        gid = event.get_plaintext().strip()
         if gid:
             state['gid'] = gid
+
 
 @no_check.got('gid', prompt='请发送需要添加白名单的群号')
 async def no_check_chat(bot: Bot, event: CQEvent, state: T_State):
     try:
         gid = int(state['gid'])
-        if event.user_id not in salmon.configs.SUPERUSERS:
-            util.log(f'{event.user_id}尝试为群{gid}添加白名单, 已拒绝')
-            await no_check.finish('权限不足')
-        util.allowlist(group_id=gid, operator='add', nocheck='no_check')
-        util.log(f'管理员{event.user_id}已将群{gid}添加至白名单, 类型为全部不检查')
-        await notify_group(group_id=gid, txt='已添加本群为白名单，将不会检查本群授权以及人数上限')
-        await no_check.finish(f'已将群{gid}添加至白名单, 类型为全部不检查')
     except:
         await no_check.finish('Invalid input.')
+    if event.user_id not in salmon.configs.SUPERUSERS:
+        util.log(f'{event.user_id}尝试为群{gid}添加白名单, 已拒绝')
+        await no_check.finish('权限不足')
+    util.allowlist(group_id=gid, operator='add', nocheck='no_check')
+    util.log(f'管理员{event.user_id}已将群{gid}添加至白名单, 类型为全部不检查')
+    await notify_group(group_id=gid, txt='已添加本群为白名单，将不会检查本群授权以及人数上限')
+    await no_check.finish(f'已将群{gid}添加至白名单, 类型为全部不检查')
 
 
 @remove_allowlist.handle()
 async def remove_allowlist_rec(bot: Bot, event: CQEvent, state: T_State):
-    gid = event.get_plaintext().split()
+    gid = event.get_plaintext().strip()
     if gid:
         state['gid'] = gid
+
 
 @remove_allowlist.got('gid', prompt='请发送需要移除白名单的群号')
 async def remove_allowlist_chat(bot: Bot, event: CQEvent, state: T_State):
     try:
         gid = int(state['gid'])
-        if event.user_id not in salmon.configs.SUPERUSERS:
-            util.log(f'{event.user_id}尝试移除白名单{gid}, 已拒绝')
-            await remove_allowlist.finish('权限不足')
-        re_code = util.allowlist(group_id=gid, operator='remove')
-        if re_code == 'not in':
-            await remove_allowlist.finish(f'群{gid}不在白名单中')
-        await notify_group(group_id=gid, txt='已移除本群的白名单')
-        util.log(f'已将群{gid}移出白名单')
-        await remove_allowlist.finish(f'已将群{gid}移出白名单')
     except:
         await remove_allowlist.finish('Invalid input.')
+    if event.user_id not in salmon.configs.SUPERUSERS:
+        util.log(f'{event.user_id}尝试移除白名单{gid}, 已拒绝')
+        await remove_allowlist.finish('权限不足')
+    re_code = util.allowlist(group_id=gid, operator='remove')
+    if re_code == 'not in':
+        await remove_allowlist.finish(f'群{gid}不在白名单中')
+    await notify_group(group_id=gid, txt='已移除本群的白名单')
+    util.log(f'已将群{gid}移出白名单')
+    await remove_allowlist.finish(f'已将群{gid}移出白名单')
 
 
 @get_allowlist.handle()
