@@ -9,7 +9,7 @@ from salmon.modules.setu_hina.lolicon import get_config, get_group_config, set_g
 
 
 HELP_MSG = '''
-来张 [keyword] 涩/色/瑟图 : 来张keyword的涩图(不指定数量与关键字发送一张随机涩图)
+来张 [keyword] 涩/色/瑟图 : 来张keyword的涩图(不指定关键字发送一张随机涩图)
 提取图片pid ： 获取指定id的p站图片，没有时发送链接
 '''
 sv = Service('setu', bundle='娱乐', help_=HELP_MSG)
@@ -70,7 +70,7 @@ async def send_msg(msg_list, bot, event):
 			salmon.logger.error('图片发送失败')
 			await bot.send(event, '涩图太涩,发不出去力...')
 		await asyncio.sleep(1)
-		return list(range(1, len(msg_list)))
+		return list(range(len(msg_list)))
 
 
 @set_conf.handle()
